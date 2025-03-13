@@ -1,6 +1,6 @@
 import cv2
 
-image = cv2.imread('OIP.jpg')
+image = cv2.imread('1.jpg')
 
 # ex 1
 (b,g,r) = image[0,0]
@@ -17,6 +17,7 @@ print("Pixel at (0,0) - Red: {}, Green: {}, Blue: {}".format(r,g,b))
 (h, w) = image.shape[:2]
 (cX, cY) = (w // 2, h // 2)
 (b,g,r) = image[cX, cY]
+
 # print(f"Pixel at ({cX},{cY}) - Red: {r}, Green: {g}, Blue: {b}")
 #
 # # ex 4
@@ -53,3 +54,18 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 # ex 7
+part_height = h // 3
+part_width = w // 3
+
+parts = []
+for i in range(3):
+    row = []
+    for j in range(3):
+        row.append(image[i * part_height:(i + 1) * part_height, j * part_width:(j + 1) * part_width])
+    parts.append(row)
+
+center_crop = parts[1][1]
+
+cv2.imshow("center crop", center_crop)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
