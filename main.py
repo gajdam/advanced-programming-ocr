@@ -1,7 +1,8 @@
 import cv2
+import numpy as np
 import imutils
 
-image = cv2.imread('OIP.jpg')
+image = cv2.imread('tank.jpg')
 (h, w) = image.shape[:2]
 (cX, cY) = (w // 2, h // 2)
 
@@ -52,3 +53,23 @@ h4 = h // 5
 resized = cv2.resize(image, (w4, h4), interpolation=cv2.INTER_LINEAR)
 cv2.imshow("resized", resized)
 cv2.waitKey(0)
+
+# ex 8
+new_dim = (w // 5, h // 5)
+resized_area = cv2.resize(image, new_dim, interpolation=cv2.INTER_AREA)
+cv2.imshow("Task8", resized_area)
+cv2.waitKey(0)
+
+# ex 9
+for scale in np.arange(1.0, 3.01, 0.2):
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+    resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    cv2.imshow(f"Task9 - {int(scale*100)}%", resized)
+    cv2.waitKey(500)
+
+# ex 10
+resized_800 = imutils.resize(image, width=800)
+cv2.imwrite('resized_output.jpg', resized_800)
+
+cv2.destroyAllWindows()
