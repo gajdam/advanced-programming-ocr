@@ -63,11 +63,8 @@ CONFUSION_MAP = {
     "I": "1",
     "l": "1",
     "Q": "0",
-    "O": "0",
     "5": "S",
     "$": "S",
-    "6": "G",
-    "8": "B",
 }
 
 PLATE_REGEX = re.compile(r"^[A-Z]{1,3}[A-Z0-9]{3,5}$")
@@ -79,7 +76,6 @@ def sanitize(text: str) -> str:
     text = re.sub(r"[^A-Z0-9]", "", text)              # usuń spacje i inne znaki
     text = "".join(CONFUSION_MAP.get(ch, ch) for ch in text)
 
-    # usuń flagę UE "PL" na początku, jeśli tekst jest wystarczająco długi
     if text.startswith("PL") and len(text) > 5:
         text = text[2:]
 
@@ -88,11 +84,19 @@ def sanitize(text: str) -> str:
 
 def load_ocr() -> easyocr.Reader:
     """Ładuje EasyOCR bez GPU (działa też na CPU-only)."""
-    return easyocr.Reader(["pl", "en"], gpu=False)
+    return easyocr.Reader(["pl"], gpu=True)
 
 
-def preprocess_plate(img: np.ndarray) -> np.ndarray:
-    """gray → (opcjonalny resize) → bilateral → adaptive thresh → invert"""
+def preprocess_plate(
+    img: np.ndarray
+) -> np.ndarray:
+    """
+    Preprocessing obrazu tablicy do OCR.
+
+    :param img: obraz wejściowy (kolorowy)
+    :param for_ocr: 'easyocr' (domyślnie) lub 'tesseract'
+    :return: przetworzony obraz (np. do podania do OCR)
+    """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     h, w = gray.shape
     scale = 2 if max(h, w) < 100 else 1
@@ -100,10 +104,10 @@ def preprocess_plate(img: np.ndarray) -> np.ndarray:
         gray = cv2.resize(gray, (w * scale, h * scale), interpolation=cv2.INTER_CUBIC)
 
     blur = cv2.bilateralFilter(gray, 9, 75, 75)
-    th = cv2.adaptiveThreshold(
-        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 5
-    )
-    return 255 - th
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(blur)
+    return enhanced
+
 
 
 # global flaga pozwalająca wyłączyć podgląd po ESC/q
@@ -127,25 +131,14 @@ def plate_text(
     if show and SHOW_IMAGES:
         win_name = "plate-debug"
         cv2.imshow(win_name, proc)
-        key = cv2.waitKey(1) & 0xFF          # ~30 fps; 0 = blokujące
-        if key in (27, ord("q")):            # ESC lub q
+        key = cv2.waitKey(0) & 0xFF
+        # exit debug mode
+        if key in (27, ord("q")):
             cv2.destroyWindow(win_name)
-            SHOW_IMAGES = False              # wyłącz podgląd na resztę run-u
+            SHOW_IMAGES = False
     # ------------------------------------------------------------------
 
     result = reader.readtext(proc, detail=0, paragraph=False)
-
-    if not result:                           # fallback → Tesseract
-        try:
-            import pytesseract               # type: ignore
-
-            config = (
-                "--psm 7 --oem 1 "
-                "-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-            )
-            result = [pytesseract.image_to_string(proc, config=config)]
-        except (ImportError, RuntimeError):
-            result = [""]
 
     return sanitize(result[0] if result else ""), proc
 
@@ -172,7 +165,7 @@ def load_annotations(xml_path: Path) -> Dict[str, str]:
 
 # -------------------- ewaluacja -------------------------------
 def enlarge_box(
-    x1: int, y1: int, x2: int, y2: int, img_w: int, img_h: int, margin_ratio=0.03
+    x1: int, y1: int, x2: int, y2: int, img_w: int, img_h: int, margin_ratio=0.02
 ) -> Tuple[int, int, int, int]:
     """Powiększa bounding box o kilka % z każdej strony (lepsze kadrowanie)."""
     dx = int((x2 - x1) * margin_ratio)
@@ -207,7 +200,7 @@ def evaluate(
         img_h, img_w = img.shape[:2]
 
         # --- YOLO detekcja tablicy ---
-        results = detector(img, conf=0.25, iou=0.5)
+        results = detector(img, conf=0.15, iou=0.5)
         boxes = results[0].boxes.xyxy.cpu().numpy() if results else []
         if not len(boxes):
             logger.info(
