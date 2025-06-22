@@ -6,4 +6,5 @@
 - [x] **opencv_basic_transforming**: simple image shifting operations
 - [x] **opencv_basic_rotation**: image rotation, comparsion of _imutils.rotate_ and _warpAffine_ methods
 - [x] **opencv_basic_resizing**
-- [ ] **opencv_basic_flipping**
+- [x] **opencv_basic_flipping**
+- [x] **opencv_basic_slicking**
