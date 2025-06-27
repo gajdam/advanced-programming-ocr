@@ -10,7 +10,7 @@
 - [x] **opencv_basic_slicking**
 - [x] **opencv_basic_arithmetic**
 - [x] **opencv_basic_bitwise**
-- [ ] **opencv_basic_masking**
-- [ ] **opencv_basic_splitting_and_merging**
-- [ ] **opencv_object_detection_shepe_detection**
-- [ ] **opencv_object_detection_template_marching**
+- [x] **opencv_basic_masking**
+- [x] **opencv_basic_splitting_and_merging**
+- [x] **opencv_object_detection_shepe_detection**
+- [x] **opencv_object_detection_template_marching**
